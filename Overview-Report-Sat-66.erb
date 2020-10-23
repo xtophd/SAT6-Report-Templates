@@ -1,0 +1,149 @@
+<%#
+name: Overview Report for SAT-6.6
+snippet: false
+template_inputs:
+- name: Hosts filter
+  required: false
+  input_type: user
+  description: Limit the report only on hosts found by this search query. Keep empty
+    for report on all available hosts.
+  advanced: false
+  value_type: search
+  resource_type: Host
+model: ReportTemplate
+require:
+- plugin: katello
+￼ version: 3.9.0
+-%>
+<%-
+
+    ## *** NOTE ***
+    ##
+    ##  This report requieres "safemode rendering" be set to false
+    ##  You can set this in the WebUI in Administer->Settings and searching for safemode
+    ##  Or, with the hammer command: "hammer settings set --name safemode_render --value false"
+    ##
+    ## *** NOTE ***
+
+    # Initialize Counters
+    count_total_bm_hosts   = 0
+    count_total_bm_sockets = 0
+    count_total_bm_cores   = 0
+    count_total_bm_1socket = 0
+    count_total_bm_2socket = 0
+    count_total_bm_4socket = 0
+    count_total_bm_8socket = 0
+    count_total_bm_Xsocket = 0
+    count_total_vm_hosts   = 0 
+    count_total_vm_sockets = 0
+    count_total_vm_cores   = 0
+    count_total_vm_1socket = 0
+    count_total_vm_2socket = 0
+    count_total_vm_4socket = 0
+    count_total_vm_8socket = 0
+    count_total_vm_Xsocket = 0
+    count_product_name     = Hash.new(0);
+    count_sku_name         = Hash.new(0);
+-%>
+<%- 
+    load_hosts().each_record do |host|
+        
+        sku_string = ""
+        
+        host.pools.each do |pool|
+            sn = pool.subscription&.cp_id
+            sku_string = sku_string + sn + " "      
+            count_sku_name[sn] += 1
+        end
+        
+        report_row(
+            'Name': host.name,
+            'Ip': host.ip,
+            'Operating System': host.operatingsystem,
+            'Arch': host.architecture,
+            'Chassis Manufacturer': host.facts['dmi::chassis::manufacturer'],
+            'System Manufacturer': host.facts['dmi::chassis::manufacturer'],
+            'System Product Name': host.facts['dmi::system::product_name'],
+            'Virt Type': host.facts['virt::host_type'],
+            'Virt Guest': host.facts['virt::is_guest'],
+            'Cores per Socket': host.facts['cpu::core(s)_per_socket'],
+            'Sockets': host.facts['cpu::cpu_socket(s)'],
+            'SKU:': sku_string,
+            'Subscriptions': host_subscriptions(host)       )
+  
+            sn = host.facts['dmi::system::product_name']
+
+            count_product_name[sn] += 1
+
+            if host.facts['virt::is_guest'] == 'true'
+                count_total_vm_hosts   += 1
+                count_total_vm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
+                count_total_vm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
+                
+                case host.facts['cpu::cpu_socket(s)'].to_i
+                when 1
+                    count_total_vm_1socket += 1
+                when 2
+                    count_total_vm_2socket += 1
+                when 4
+                    count_total_vm_4socket += 1
+                when 8
+                    count_total_vm_8socket += 1
+                else
+                    count_total_vm_Xsocket += 1
+                end
+
+            else
+                count_total_bm_hosts   += 1
+                count_total_bm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
+                count_total_bm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
+                    case host.facts['cpu::cpu_socket(s)'].to_i
+                when 1
+                    count_total_bm_1socket += 1
+                when 2
+                    count_total_bm_2socket += 1
+                when 4
+                    count_total_bm_4socket += 1
+                when 8
+                    count_total_bm_8socket += 1
+                else
+                    count_total_bm_Xsocket += 1
+                end
+            end 
+        end
+-%>
+<%= report_render -%>
+
+<%- # Report Count Totals -%>
+
+Bare-Metal-Summaries:
+Hosts,<%= count_total_bm_hosts %>
+Total-Sockets,<%= count_total_bm_sockets %>
+Total-Cores,<%= count_total_bm_cores %>
+
+1-Socket-Servers,<%= count_total_bm_1socket %>
+2-Socket-Servers,<%= count_total_bm_2socket %>
+4-Socket-Servers,<%= count_total_bm_4socket %>
+8-Socket-Servers,<%= count_total_bm_8socket %>
+Other-Socket-Servers,<%= count_total_bm_Xsocket %>
+
+Virtual-Machine-Summaries:
+Hosts,<%= count_total_vm_hosts %>
+Total-Sockets,<%= count_total_vm_sockets %>
+Total-Cores,<%= count_total_vm_cores %>
+
+1-Socket-VMs,<%= count_total_vm_1socket %>
+2-Socket-VMs,<%= count_total_vm_2socket %>
+4-Socket-VMs,<%= count_total_vm_4socket %>
+8-Socket-VMs,<%= count_total_vm_8socket %>
+Oher-Socket-VMs,<%= count_total_vm_Xsocket %>
+
+<%= "Software-Product-Inventories:" %>
+<%- count_sku_name.each do |key, value| -%>
+<%= key %>,<%= value %>
+<%- end %>
+
+<%= "Hardware-Product-Inventories:" %>
+<%- count_product_name.each do |key, value| -%>
+<%= key %>,<%= value %>
+<%- end %>
