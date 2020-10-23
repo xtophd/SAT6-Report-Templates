@@ -1,0 +1,10 @@
+save the erb file to your system
+log into satellite WebUI
+goto Administer->Settings
+in the search bar, type "safemode"
+hit the pencil icon next to Yes/No, and set the value to "No"
+now, goto Monitor -> Report Templates
+click Create Template
+click the Import button (answer "Yes" to override editor content) and upload the saved erb
+then click to save the template
+now you should be able to "Generate" the report for "Overview Report for Sat-6.6"
