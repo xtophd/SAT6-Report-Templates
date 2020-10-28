@@ -113,6 +113,7 @@ require:
         end
 -%>
 <%- # Report Count Totals -%>
+Report Date:,<%= Date.today.strftime("%Y-%m-%d") %>
 Sat ORG:,<%= Organization&.current&.title %>
 Sat UID:,<%= User.current %>
 
