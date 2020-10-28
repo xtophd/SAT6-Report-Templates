@@ -112,9 +112,9 @@ require:
             end 
         end
 -%>
-<%= report_render -%>
-
 <%- # Report Count Totals -%>
+Sat ORG:,<%= Organization&.current&.title %>
+Sat UID:,<%= User.current %>
 
 Bare-Metal-Summaries:
 Hosts,<%= count_total_bm_hosts %>
@@ -147,3 +147,7 @@ Oher-Socket-VMs,<%= count_total_vm_Xsocket %>
 <%- count_product_name.each do |key, value| -%>
 <%= key %>,<%= value %>
 <%- end %>
+
+<%= report_render -%>
+
+
