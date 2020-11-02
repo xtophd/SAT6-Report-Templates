@@ -43,6 +43,7 @@ require:
     count_total_vm_8socket = 0
     count_total_vm_Xsocket = 0
     count_product_name     = Hash.new(0);
+    count_os_name          = Hash.new(0);
     count_sku_name         = Hash.new(0);
 -%>
 <%- 
@@ -71,47 +72,61 @@ require:
             'SKU:': sku_string,
             'Subscriptions': host_subscriptions(host)       )
   
-            sn = host.facts['dmi::system::product_name']
+        ##
+        ## Increment the product name count
+        ##
+        
+        sn = host.facts['dmi::system::product_name']
+        count_product_name[sn] += 1
 
-            count_product_name[sn] += 1
+        ##
+        ## Increment the os name count
+        ##
+        
+        count_os_name[host.operatingsystem] += 1
 
-            if host.facts['virt::is_guest'] == 'true'
-                count_total_vm_hosts   += 1
-                count_total_vm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
-                count_total_vm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
-                
-                case host.facts['cpu::cpu_socket(s)'].to_i
-                when 1
-                    count_total_vm_1socket += 1
-                when 2
-                    count_total_vm_2socket += 1
-                when 4
-                    count_total_vm_4socket += 1
-                when 8
-                    count_total_vm_8socket += 1
-                else
-                    count_total_vm_Xsocket += 1
-                end
+        ##
+        ## Separate bare-metal from virtual machine counts
+        ##
 
+        if host.facts['virt::is_guest'] == 'true'
+            count_total_vm_hosts   += 1
+            count_total_vm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
+            count_total_vm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
+            
+            case host.facts['cpu::cpu_socket(s)'].to_i
+            when 1
+                count_total_vm_1socket += 1
+            when 2
+                count_total_vm_2socket += 1
+            when 4
+                count_total_vm_4socket += 1
+            when 8
+                count_total_vm_8socket += 1
             else
-                count_total_bm_hosts   += 1
-                count_total_bm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
-                count_total_bm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
-                    case host.facts['cpu::cpu_socket(s)'].to_i
-                when 1
-                    count_total_bm_1socket += 1
-                when 2
-                    count_total_bm_2socket += 1
-                when 4
-                    count_total_bm_4socket += 1
-                when 8
-                    count_total_bm_8socket += 1
-                else
-                    count_total_bm_Xsocket += 1
-                end
-            end 
-        end
+                count_total_vm_Xsocket += 1
+            end
+
+        else
+            count_total_bm_hosts   += 1
+            count_total_bm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
+            count_total_bm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
+                case host.facts['cpu::cpu_socket(s)'].to_i
+            when 1
+                count_total_bm_1socket += 1
+            when 2
+                count_total_bm_2socket += 1
+            when 4
+                count_total_bm_4socket += 1
+            when 8
+                count_total_bm_8socket += 1
+            else
+                count_total_bm_Xsocket += 1
+            end
+        end 
+    end
 -%>
+
 <%- # Report Count Totals -%>
 Report Date:,<%= Date.today.strftime("%Y-%m-%d") %>
 Sat ORG:,<%= Organization&.current&.title %>
@@ -149,6 +164,9 @@ Oher-Socket-VMs,<%= count_total_vm_Xsocket %>
 <%= key %>,<%= value %>
 <%- end %>
 
+<%= "OperatingSystem-Product-Inventories:" %>
+<%- count_os_name.sort.each do |key, value| -%>
+<%= key %>,<%= value %>
+<%- end %>
+
 <%= report_render -%>
-
-
