@@ -1,5 +1,5 @@
 <%#
-name: Registered hosts
+name: Overview Report v20201203b
 snippet: false
 template_inputs:
 - name: Hosts filter
@@ -47,7 +47,7 @@ require:
     count_os_name          = Hash.new(0);
 -%>
 <%- 
-    #load_hosts(search: input('Hosts filter'), includes: [:operatingsystem, :subscriptions, :interfaces, :applicable_errata], preload: [:kernel_release, :owner]).each_record do |host| 
+
     load_hosts().each_record do |host|
         
         sku_string = ""
@@ -68,6 +68,7 @@ require:
             'System Product Name': host.facts['dmi::system::product_name'],
             'Virt Type': host.facts['virt::host_type'],
             'Virt Guest': host.facts['virt::is_guest'],
+            'Guest of Host': host.hypervisor_host,
             'Cores per Socket': host.facts['cpu::core(s)_per_socket'],
             'Sockets': host.facts['cpu::cpu_socket(s)'],
             'SKU:': sku_string,
