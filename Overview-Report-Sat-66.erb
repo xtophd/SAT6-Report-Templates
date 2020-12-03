@@ -1,5 +1,5 @@
 <%#
-name: Overview Report for SAT-6.6
+name: Registered hosts
 snippet: false
 template_inputs:
 - name: Hosts filter
@@ -43,10 +43,11 @@ require:
     count_total_vm_8socket = 0
     count_total_vm_Xsocket = 0
     count_product_name     = Hash.new(0);
-    count_os_name          = Hash.new(0);
     count_sku_name         = Hash.new(0);
+    count_os_name          = Hash.new(0);
 -%>
 <%- 
+    #load_hosts(search: input('Hosts filter'), includes: [:operatingsystem, :subscriptions, :interfaces, :applicable_errata], preload: [:kernel_release, :owner]).each_record do |host| 
     load_hosts().each_record do |host|
         
         sku_string = ""
@@ -56,7 +57,7 @@ require:
             sku_string = sku_string + sn + " "      
             count_sku_name[sn] += 1
         end
-        
+    
         report_row(
             'Name': host.name,
             'Ip': host.ip,
@@ -71,19 +72,37 @@ require:
             'Sockets': host.facts['cpu::cpu_socket(s)'],
             'SKU:': sku_string,
             'Subscriptions': host_subscriptions(host)       )
-  
+
+        ##
+        ## Increment the os name count
+        ##
+        ## ** NOTE ** I ran into a problem with virt-who hosts having a nil OS and that created
+        ##            problems for the hash.  This technique of assigning the value to a 
+        ##            string "sn" and then testing "empty" is a workaround.  We will use the same
+        ##            technique with other hashes for consistency 
+        
+        sn = host.operatingsystem
+        if !sn.to_s.empty? 
+            count_os_name[sn] += 1
+        end
+    
         ##
         ## Increment the product name count
         ##
         
         sn = host.facts['dmi::system::product_name']
-        count_product_name[sn] += 1
+        if !sn.to_s.empty?
+            count_product_name[sn] += 1
+        end
 
         ##
-        ## Increment the os name count
-        ##
+        ## Increment the product name count
+        ## 
         
-        count_os_name[host.operatingsystem] += 1
+        sn = host.facts['dmi::system::product_name']
+        if !sn.to_s.empty?
+            count_product_name[sn] += 1
+        end
 
         ##
         ## Separate bare-metal from virtual machine counts
@@ -111,7 +130,8 @@ require:
             count_total_bm_hosts   += 1
             count_total_bm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
             count_total_bm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
-                case host.facts['cpu::cpu_socket(s)'].to_i
+            
+            case host.facts['cpu::cpu_socket(s)'].to_i
             when 1
                 count_total_bm_1socket += 1
             when 2
@@ -124,10 +144,9 @@ require:
                 count_total_bm_Xsocket += 1
             end
         end 
-    end
+    end 
 -%>
 
-<%- # Report Count Totals -%>
 Report Date:,<%= Date.today.strftime("%Y-%m-%d") %>
 Sat ORG:,<%= Organization&.current&.title %>
 Sat UID:,<%= User.current %>
@@ -152,7 +171,7 @@ Total-Cores,<%= count_total_vm_cores %>
 2-Socket-VMs,<%= count_total_vm_2socket %>
 4-Socket-VMs,<%= count_total_vm_4socket %>
 8-Socket-VMs,<%= count_total_vm_8socket %>
-Oher-Socket-VMs,<%= count_total_vm_Xsocket %>
+Other-Socket-VMs,<%= count_total_vm_Xsocket %>
 
 <%= "Software-Product-Inventories:" %>
 <%- count_sku_name.each do |key, value| -%>
