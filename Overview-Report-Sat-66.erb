@@ -1,5 +1,5 @@
 <%#
-name: Overview Report v20201203b
+name: Overview Report v20201211a
 snippet: false
 template_inputs:
 - name: Hosts filter
@@ -49,6 +49,8 @@ require:
     count_product_name     = Hash.new(0);
     count_sku_name         = Hash.new(0);
     count_os_name          = Hash.new(0);
+    count_virthost_name    = Hash.new(0);
+
 -%>
 <%- 
 
@@ -107,6 +109,15 @@ require:
         sn = host.facts['dmi::system::product_name']
         if !sn.to_s.empty?
             count_product_name[sn] += 1
+        end
+
+        ##
+        ## Increment the virthost name count
+        ## 
+        
+        sn = host.hypervisor_host
+        if !sn.to_s.empty?
+            count_virthost_name[sn] += 1
         end
 
         ##
@@ -177,6 +188,11 @@ Total-Cores,<%= count_total_vm_cores %>
 4-Socket-VMs,<%= count_total_vm_4socket %>
 8-Socket-VMs,<%= count_total_vm_8socket %>
 Other-Socket-VMs,<%= count_total_vm_Xsocket %>
+
+<%= "Hypervisor-Guest-Summaries:" %>
+<%- count_virthost_name.each do |key, value| -%>
+<%= key %>,<%= value %>
+<%- end %>
 
 <%= "Software-Product-Inventories:" %>
 <%- count_sku_name.each do |key, value| -%>
