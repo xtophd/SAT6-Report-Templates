@@ -1,5 +1,5 @@
 <%#
-name: Overview Report v20201211a
+name: Overview Report v20201214a
 snippet: false
 template_inputs:
 - name: Hosts filter
@@ -52,8 +52,29 @@ require:
     count_virthost_name    = Hash.new(0);
 
 -%>
+Report Date:,<%= Date.today.strftime("%Y-%m-%d") %>
+Sat ORG:,<%= Organization&.current&.title %>
+Sat UID:,<%= User.current %>
+
+Subscription-Summary:
+ID,Name,Available,Quantity,SKU,Contract Number
+<%-
+
+    ## Show 'pool' (entitlement) data
+    ##   Similar to the default 'Subscriptions' report template, this section simply shows
+    ##   the name, quantity available, quantity total, sku # and contract #.  I do not use
+    ##   the built in 'report' function as that is reserved for the host counting/reporting
+    
+    load_pools(includes: [:subscription, :products]).each_record do |pool| 
+-%>
+<%= pool.id %>,'<%= pool.name %>',<%= pool.available %>,<%= pool.quantity %>,'<%= pool.product_id %>','<%= pool.contract_number %>'
+<%- end -%>
+
 <%- 
 
+    ## Report 'host' data
+    ##   This section iterates through all the hosts and accumulates various totals
+    
     load_hosts().each_record do |host|
         
         sku_string = ""
@@ -162,10 +183,6 @@ require:
         end 
     end 
 -%>
-
-Report Date:,<%= Date.today.strftime("%Y-%m-%d") %>
-Sat ORG:,<%= Organization&.current&.title %>
-Sat UID:,<%= User.current %>
 
 Bare-Metal-Summaries:
 Hosts,<%= count_total_bm_hosts %>
