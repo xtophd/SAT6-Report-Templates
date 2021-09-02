@@ -28,6 +28,7 @@ Pretty straight forward report details include:
 6. now, goto Monitor -> Report Templates
 7. click Create Template
 8. click the Import button (answer "Yes" to override editor content) and upload the saved erb
+     NOTE: on newer versions of satellite, the Import button is a folder icon on the editor tool bar
 9. you may need name the report in the dialog, use: "Overview Report for Sat-6.6"
-9. then click to save the template
+9. then click to save (or submit) the template
 10. now you should be able to "Generate" the report for "Overview Report for Sat-6.6"
