@@ -1,0 +1,49 @@
+<%#
+name: "(MODIFIED) Registered Content Hosts"
+snippet: false
+template_inputs:
+- name: Hosts filter
+  required: false
+  input_type: user
+  description: Limit the report only on hosts found by this search query. Keep empty
+    for report on all available hosts.
+  advanced: false
+  value_type: search
+  resource_type: Host
+  hidden_value: false
+- name: Installability
+  required: true
+  input_type: user
+  description: Select Applicable to show all applicable errata. Select Installable
+    to show errata that are in the host's content view environment(s) and can thus
+    be installed.
+  options: "applicable\r\ninstallable"
+  advanced: false
+  value_type: plain
+  resource_type: Katello::ActivationKey
+  default: applicable
+  hidden_value: false
+model: ReportTemplate
+-%>
+<%- report_headers 'Name', 'Ip', 'Arch', 'Chassis', 'System', 'Name', 'Virt Type', 'Virt Guest', 'Hyp Host', 'Cores/skt', 'Sockets', 'Operating System', 'Subscriptions', 'Owner', 'Kernel', 'Latest kernel available' -%>
+<%- load_hosts(search: input('Hosts filter'), includes: [:operatingsystem, :subscriptions, :interfaces, :applicable_errata], preload: [:kernel_release, :owner]).each_record do |host| -%>
+<%-   report_row(
+        'Name': host.name,
+        'Ip': host.ip,
+        'Arch': host.architecture,
+        'Chassis Manufacturer': host.facts['dmi::chassis::manufacturer'],
+        'System Manufacturer': host.facts['dmi::chassis::manufacturer'],
+        'System Product Name': host.facts['dmi::system::product_name'],
+        'Virt Type': host.facts['virt::host_type'],
+        'Virt Guest': host.facts['virt::is_guest'],
+        'Guest of Host': host.hypervisor_host,
+        'Cores per Socket': host.facts['cpu::core(s)_per_socket'],
+        'Sockets': host.facts['cpu::cpu_socket(s)'],
+        'Operating System': host.operatingsystem,
+        'Subscriptions': host_subscriptions_names(host),
+        'Owner': host.owner,
+        'Kernel': host_kernel_release(host),
+        'Latest kernel available': (input('Installability') == 'applicable' ? host_latest_applicable_rpm_version(host, 'kernel') : host_latest_installable_rpm_version(host, 'kernel'))
+      ) -%>
+<%- end -%>
+<%= report_render -%>
