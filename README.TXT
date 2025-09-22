@@ -7,10 +7,11 @@ There are 2 reports in this project:
     Overview-Report-2020.erb
         - requires safemode be disabled in satellite
         - aggregates more information dynamically 
+        - originally designed and tested tested Satellite v6.6
     Overview-Report-2025.erb
         - does NOT require safemode be disabled
         - collects similar information
-        - tested with Satellite v6.16
+        - originally designed and tested with Satellite v6.16
 
 These reports are NOT authoritive, they are designed to provide content to support a discussion about
 the data presented.  The data is only as reliable as the clients reporting the values.
