@@ -1,0 +1,130 @@
+<%#
+name: Overview-Report-2025
+snippet: false
+template_inputs:
+- name: Hosts filter
+  required: false
+  input_type: user
+  description: Limit the report only on hosts found by this search query. Keep empty
+    for report on all available hosts.
+  advanced: false
+  value_type: search
+  resource_type: Host
+  hidden_value: false
+- name: Installability
+  required: true
+  input_type: user
+  description: Select Applicable to show all applicable errata. Select Installable
+    to show errata that are in the host's content view environment(s) and can thus
+    be installed.
+  options: "applicable\r\ninstallable"
+  advanced: false
+  value_type: plain
+  resource_type: Katello::ActivationKey
+  default: applicable
+  hidden_value: false
+model: ReportTemplate
+-%>
+<%-
+# Initialize Counters
+    count_total_bm_hosts   = 0
+    count_total_bm_sockets = 0
+    count_total_bm_cores   = 0
+    count_total_bm_1socket = 0
+    count_total_bm_2socket = 0
+    count_total_bm_4socket = 0
+    count_total_bm_8socket = 0
+    count_total_bm_Xsocket = 0
+    
+    count_total_vm_hosts   = 0
+    count_total_vm_sockets = 0
+    count_total_vm_cores   = 0
+    count_total_vm_1socket = 0
+    count_total_vm_2socket = 0
+    count_total_vm_4socket = 0
+    count_total_vm_8socket = 0
+    count_total_vm_Xsocket = 0
+-%>
+
+<%- report_headers 'Name', 'Ip', 'Arch', 'Chassis Manufacturer', 'System Manufacturer', 'System Product Name', 'Virt Type', 'Virt Guest', 'Guest of Host', 'Cores per Socket', 'Sockets', 'Operating System', 'Subscriptions', 'Owner', 'Kernel', 'Latest Installable Kernel' -%>
+<%- load_hosts(search: input('Hosts filter'), includes: [:operatingsystem, :subscriptions, :interfaces, :applicable_errata], preload: [:kernel_release, :owner]).each_record do |host| -%>
+<%-   report_row(
+        'Name': host.name,
+        'Ip': host.ip,
+        'Arch': host.architecture,
+        'Chassis Manufacturer': host.facts['dmi::chassis::manufacturer'],
+        'System Manufacturer': host.facts['dmi::chassis::manufacturer'],
+        'System Product Name': host.facts['dmi::system::product_name'],
+        'Virt Type': host.facts['virt::host_type'],
+        'Virt Guest': host.facts['virt::is_guest'],
+        'Guest of Host': host.hypervisor_host,
+        'Cores per Socket': host.facts['cpu::core(s)_per_socket'],
+        'Sockets': host.facts['cpu::cpu_socket(s)'],
+        'Operating System': host.operatingsystem,
+        'Subscriptions': host_subscriptions_names(host),
+        'Owner': host.owner,
+        'Kernel': host_kernel_release(host),
+        'Latest Installable Kernel': host_latest_installable_rpm_version(host, 'kernel')
+      ) 
+    if host.facts['virt::is_guest'] == 'true'
+        count_total_vm_hosts   += 1
+        count_total_vm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
+        count_total_vm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
+            
+        case host.facts['cpu::cpu_socket(s)'].to_i
+            when 1
+                count_total_vm_1socket += 1
+            when 2
+                count_total_vm_2socket += 1
+            when 4
+                count_total_vm_4socket += 1
+            when 8
+                count_total_vm_8socket += 1
+            else
+                count_total_vm_Xsocket += 1
+        end
+
+    else
+        
+        count_total_bm_hosts   += 1
+        count_total_bm_sockets += host.facts['cpu::cpu_socket(s)'].to_i
+        count_total_bm_cores   += host.facts['cpu::cpu_socket(s)'].to_i * host.facts['cpu::core(s)_per_socket'].to_i
+            
+        case host.facts['cpu::cpu_socket(s)'].to_i
+            when 1
+                count_total_bm_1socket += 1
+            when 2
+                count_total_bm_2socket += 1
+            when 4
+                count_total_bm_4socket += 1
+            when 8
+                count_total_bm_8socket += 1
+            else
+                count_total_bm_Xsocket += 1
+        end
+    end 
+-%>
+<%- end -%>
+<%= report_render -%>
+
+Bare-Metal-Summaries:
+Hosts,<%= count_total_bm_hosts %>
+Total-Sockets,<%= count_total_bm_sockets %>
+Total-Cores,<%= count_total_bm_cores %>
+
+1-Socket-Servers,<%= count_total_bm_1socket %>
+2-Socket-Servers,<%= count_total_bm_2socket %>
+4-Socket-Servers,<%= count_total_bm_4socket %>
+8-Socket-Servers,<%= count_total_bm_8socket %>
+Other-Socket-Servers,<%= count_total_bm_Xsocket %>
+
+Virtual-Machine-Summaries:
+Hosts,<%= count_total_vm_hosts %>
+Total-Sockets,<%= count_total_vm_sockets %>
+Total-Cores,<%= count_total_vm_cores %>
+
+1-Socket-VMs,<%= count_total_vm_1socket %>
+2-Socket-VMs,<%= count_total_vm_2socket %>
+4-Socket-VMs,<%= count_total_vm_4socket %>
+8-Socket-VMs,<%= count_total_vm_8socket %>
+Other-Socket-VMs,<%= count_total_vm_Xsocket %>
