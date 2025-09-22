@@ -4,8 +4,8 @@
 ##  -------------------------------------
 
 There are 2 reports in this project:
-    Overview-Report-Sat-6.6.erb
-        - requires safemode be disabled
+    Overview-Report-2020.erb
+        - requires safemode be disabled in satellite
         - aggregates more information dynamically 
     Overview-Report-2025.erb
         - does NOT require safemode be disabled
